@@ -1,70 +1,49 @@
 package resource;
 
-import model.DataRepository;
-import model.MLWorkspace;
-import model.WorkspaceNotEmptyException; // ADDED THIS IMPORT TO FIX THE SYMBOL ERROR
-
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.Collection;
 
-@Path("/workspaces")
+import java.util.*;
+
+@Path("/api/v1/workspaces")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class WorkspaceResource {
 
+    private static Map<String, String> db = new HashMap<>();
+
     @GET
-    public Collection<MLWorkspace> getAllWorkspaces() {
-        return DataRepository.workspaces.values();
+    public Response getAll() {
+        return Response.ok(db.values()).build();
     }
 
     @POST
-    public Response createWorkspace(MLWorkspace workspace) {
-        if (workspace.getId() == null || workspace.getId().trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\":\"Workspace ID cannot be empty\"}")
+    public Response create(Map<String, String> workspace) {
+
+        String id = workspace.get("id");
+
+        if (id == null || id.isEmpty()) {
+            return Response.status(400)
+                    .entity("{\"error\":\"Workspace ID required\"}")
                     .build();
         }
 
-        if (DataRepository.workspaces.containsKey(workspace.getId())) {
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("{\"error\":\"Workspace already exists\"}")
-                    .build();
-        }
+        db.put(id, id);
 
-        DataRepository.workspaces.put(workspace.getId(), workspace);
-        return Response.status(Response.Status.CREATED).entity(workspace).build();
+        return Response.status(201).entity(workspace).build();
     }
 
     @GET
-    @Path("/{workspaceId}")
-    public Response getWorkspaceById(@PathParam("workspaceId") String workspaceId) {
-        MLWorkspace workspace = DataRepository.workspaces.get(workspaceId);
-        if (workspace == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("{\"error\":\"Workspace not found\"}")
-                    .build();
-        }
-        return Response.ok(workspace).build();
-    }
+    @Path("/{id}")
+    public Response getOne(@PathParam("id") String id) {
 
-    @DELETE
-    @Path("/{workspaceId}")
-    public Response deleteWorkspace(@PathParam("workspaceId") String workspaceId) {
-        MLWorkspace workspace = DataRepository.workspaces.get(workspaceId);
-        if (workspace == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("{\"error\":\"Workspace not found\"}")
+        if (!db.containsKey(id)) {
+            return Response.status(404)
+                    .entity("{\"error\":\"Not found\"}")
                     .build();
         }
 
-        // Business Logic Constraint: Throw custom exception if models are assigned
-        if (workspace.getModelIds() != null && !workspace.getModelIds().isEmpty()) {
-            throw new WorkspaceNotEmptyException("Cannot delete workspace '" + workspaceId + "' because it contains active deployed machine learning models.");
-        }
-
-        DataRepository.workspaces.remove(workspaceId);
-        return Response.noContent().build(); // 204 No Content upon success
+        return Response.ok(db.get(id)).build();
     }
 }
