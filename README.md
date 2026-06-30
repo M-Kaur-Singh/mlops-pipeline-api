@@ -47,7 +47,7 @@ http://localhost:8080/api/v1
 
 ### 3. Sample cURL Commands
 
-# 11. Create Workspace (POST)
+# 1. Create Workspace (POST)
 ```bash
 curl -X POST http://localhost:8080/api/v1/workspaces \
   -H "Content-Type: application/json" \
