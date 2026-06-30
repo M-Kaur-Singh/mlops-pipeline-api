@@ -1,68 +1,80 @@
 # MLOps Pipeline Management API Report
 
 ## 1. Overview of API Design
-This project implements a robust RESTful API built using the Quarkus framework and Java to manage machine learning operations (MLOps) pipelines. The API provides a clean, decoupled architecture to handle enterprise-level Workspaces, deployable machine learning Models, and automated processing Pipelines.
+**Answer:** This project implements a RESTful API built using JAX-RS (Jersey implementation) and Java with an embedded Grizzly HTTP server to manage machine learning operations (MLOps) pipelines. The API provides a decoupled architecture to manage Workspaces, Machine Learning Models, and evaluation metrics in a structured and scalable way.
 
-The resource management model enforces strict data isolation and logical validation boundaries:
-* Workspace: Represents the top-level logical boundary or tenant environment for an analytics team.
-* Model: Represents individual machine learning models (tracking versions and frameworks) linked to a specific Workspace.
-* Pipeline: Controls the automated execution paths for data preparation and deployment tasks.
+The system follows a resource-based design:
 
+* Workspace: Represents a logical boundary for a data science team, containing deployed models and associated resources.
+* MachineLearningModel: Represents individual machine learning models, tracking framework, status, and performance metrics, and is linked to a workspace.
+* Evaluation Metrics: Represents historical performance data for models, enabling tracking of accuracy over time and supporting monitoring of model behaviour.
 ---
 
 ## 2. Step-by-Step Instructions
 
 ### Prerequisites
-* **Java Development Kit (JDK) 17** or higher
-* **Apache Maven 3.8.x** or higher
-* **Mac Terminal Application** or the integrated terminal environment within IntelliJ IDEA
 
-### Step 1: Build the Project
-To clean previous build artifacts, compile the source code, run unit tests, and package the application into an executable JAR file, run the following command in your Mac Terminal application from the project root directory:
-```bash
+* Java Development Kit (JDK) 17 or higher
+* Apache Maven 3.8.x or higher
+* IntelliJ IDEA (or any Java IDE) with terminal support
+
+Step 1: Build the Project
+
+To clean previous builds, compile the project, run tests, and package the application into a runnable JAR, execute the following command from the project root directory:
+```
 mvn clean package
+```
 
-Step 2: Launch the Server
-Once the build is complete, use the following command to spin up the Quarkus server in development mode. This activates live-reloading features and hosts the server locally on port 8080:
+Step 2: Run the Server
 
-Bash
-mvn quarkus:dev
-The base API entry point is accessible at: http://localhost:8080
+Start the embedded Grizzly HTTP server by running the main application class (MLOpsApplication).
 
+You can either:
+
+* Run the MLOpsApplication main method directly from IntelliJ IDEA
+OR
+* Use Maven:
+```
+mvn exec:java
+```
+API Base URL
+Once the server is running, the API will be available at:
+
+```
+http://localhost:8080/api/v1 
 ```
 ---
 
 ### 3. Sample cURL Commands
-The following five cURL commands demonstrate successful HTTP interactions across different parts of the deployed API resources.
 
-1. Create a New Workspace (POST)
-Bash
-curl -X POST http://localhost:8080/workspaces \
+# 11. Create Workspace (POST)
+```bash
+curl -X POST http://localhost:8080/api/v1/workspaces \
   -H "Content-Type: application/json" \
-  -d '{"name": "Production Analytics", "owner": "M-Kaur-Singh"}'
+  -d '{"teamName": "Production Analytics", "storageQuotaGb": 100}'
+  ```
 
-2. Retrieve All Workspaces (GET)
-Bash
-curl -X GET http://localhost:8080/workspaces
+# 2. Get All Workspaces (GET)
+```
+curl -X GET http://localhost:8080/api/v1/workspaces
+```
 
+# 3. Get Workspace by ID (GET)
+```
+curl -X GET http://localhost:8080/api/v1/workspaces/WS-1
+```
 
-3. Add a Model to a Workspace (POST)
-Bash
-curl -X POST http://localhost:8080/models \
+# 4. Create Model (POST)
+```
+curl -X POST http://localhost:8080/api/v1/models \
   -H "Content-Type: application/json" \
-  -d '{"name": "Churn-Prediction-Model", "version": "v1.0.0", "workspaceId": 1}'
-  
-  
-4. Fetch Details of a Specific Model (GET)
-Bash
-curl -X GET http://localhost:8080/models/1
+  -d '{"framework": "Scikit-Learn", "status": "TRAINING", "workspaceId": "WS-1", "latestAccuracy": 0.0}'
+```
 
-5. Trigger a Pipeline Execution (POST)
-Bash
-curl -X POST http://localhost:8080/pipelines/1/execute \
-  -H "Content-Type: application/json" \
-  -d '{"triggeredBy": "Automation-Agent"}'
-
+# 5. Get All Models (GET)
+```
+curl -X GET http://localhost:8080/api/v1/models
+```
 ---
 
 ## 4. Conceptual Report: Coursework Answers
@@ -72,14 +84,14 @@ curl -X POST http://localhost:8080/pipelines/1/execute \
 ### 1.1 Architecture & Config Question
 When returning a Java object from a method, it is automatically serialized into JSON. Explain the role of a MessageBodyWriter or a JSON provider (like Jackson) in this conversion process.
 
-**Answer:** A MessageBodyWriter is a core architectural interface within the JAX-RS framework. It manages the marshaling of native Java objects (POJOs) into a specific raw stream format for HTTP responses. When an API endpoint method returns a plain Java object and is decorated with the @Produces(MediaType.APPLICATION_JSON) annotation, the JAX-RS runtime looks for an active provider. Jackson serves as this concrete JSON provider. It handles low-level processing by using reflection to inspect class properties. It invokes the appropriate getter methods and maps those key-value states dynamically into a valid JSON text string written directly into the HTTP outbound response body.
+**Answer:** A MessageBodyWriter is a JAX-RS component responsible for converting Java objects (POJOs) into the format required for an HTTP response. When a resource method returns a Java object and is annotated with @Produces(MediaType.APPLICATION_JSON), the JAX-RS runtime selects a suitable MessageBodyWriter to perform the conversion. A JSON provider such as Jackson is a common implementation of this functionality. Jackson inspects the object's properties (typically through its getter methods) and serializes them into valid JSON, which is then written to the HTTP response body and sent to the client.
 
 ### 1.2 Discovery Endpoint Question
 REST architecture dictates that APIs should be strictly 'stateless'. Define what statelessness means in this context and explain why it makes cloud APIs easier to scale horizontally across multiple servers.
 
-**Answer:** In RESTful system design, statelessness means that the server application is completely prohibited from preserving or caching any client session state across transactional boundaries. Every incoming HTTP request must arrive as an isolated, completely self-contained payload. It must embed all necessary metadata, credentials, and query targets required to complete the operation.
+**Answer:**  In RESTful system design, statelessness means that the server does not store any client session state between requests. Each HTTP request must be self-contained and include all the information required to process it, such as authentication details, request parameters, and resource identifiers. The server treats each request independently, without relying on information from previous interactions.
 
-This requirement directly simplifies horizontal scaling in cloud infrastructure. Because individual instances do not store sticky session data in memory, a load balancer can route consecutive requests from the same user to entirely different physical servers. This route changes without causing state desynchronization errors and removes the need for complex, resource-heavy multi-node session replication systems.
+This requirement significantly simplifies horizontal scaling in cloud environments. Because individual server instances do not retain client session data in memory, a load balancer can distribute consecutive requests from the same client across different servers without affecting system behaviour. As each request contains all necessary information, there is no need to synchronise session state between servers or implement complex session replication mechanisms. This improves scalability, reliability, and fault tolerance.
 
 ---
 
@@ -88,12 +100,14 @@ This requirement directly simplifies horizontal scaling in cloud infrastructure.
 ### 2.1 Workspace Resource Implementation Question
 Discuss how implementing HTTP Cache-Control headers on the GET workspaces endpoint could improve performance for the client and reduce unnecessary processing load on the server.
 
-**Answer:** Appending explicit Cache-Control directive headers (such as max-age=30) tells the client's browser or upstream proxy caches that they can store and reuse a snapshot of the workspace collection locally. For the client, this dramatically increases responsiveness. Cached datasets are retrieved instantly from local storage without paying a network latency penalty. For the server, it lowers resource consumption because it intercepts redundant requests before they hit the resource layer. This stops unnecessary database execution loops and JSON parsing overhead for static data.
+**Answer:** Appending HTTP Cache-Control headers (for example, Cache-Control: max-age=30) allows the client or intermediary caches to store the response from the GET /workspaces endpoint for a specified period. This improves performance for the client because cached responses can be returned immediately without making another request to the server, reducing network latency and improving response times. It also reduces unnecessary processing on the server because repeated requests for unchanged workspace data can be served from the cache instead of requiring the server to retrieve the data from its in-memory collections and serialize it into JSON again. This decreases bandwidth usage and improves the overall scalability of the API.
 
 ### 2.2 Workspace Deletion & Safety Logic Question
 If a client needs to verify whether a specific workspace exists but wants to save bandwidth by not downloading the entire JSON body, which HTTP method should they use instead of GET? Explain your reasoning.
 
-**Answer:** The client should issue a HEAD request. The HEAD method mirrors the exact routing logic, access controls, and header generation of a standard GET request, but it explicitly tells the server to drop the response payload entirely. The server returns only the initial HTTP status line and header metadata. By checking for a 200 OK or 404 Not Found response code, the client can confidently verify if a resource exists without wasting bandwidth transferring large collections of JSON text.
+**Answer:** The client should use a HEAD request. The HEAD method is identical to a GET request in terms of routing, authentication, and header processing, but it does not return a response body. Instead, the server responds with the same headers and HTTP status code that would be returned by a GET request.
+
+This allows the client to determine whether a resource exists by checking the response status code (for example, 200 OK or 404 Not Found) without downloading the full JSON payload. As a result, bandwidth usage is reduced and unnecessary data transfer is avoided, particularly when dealing with large collections of resources.
 
 ---
 
@@ -102,14 +116,18 @@ If a client needs to verify whether a specific workspace exists but wants to sav
 ### 3.1 Model Resource & Integrity Question
 When creating a new Model via a POST request, it is considered best practice for the server to generate the unique id (e.g., using UUID.randomUUID()) rather than allowing the client to pass an id in their JSON payload. Discuss the security and data integrity reasons behind this architectural choice, contrasting Jakarta Bean Validation annotations vs manual if-else validation.
 
-**Answer:** Delegating unique identifier provisioning to the client presents significant structural and security risks. From a security perspective, it exposes the API to resource hijacking attacks, where a malicious user could intentionally guess and supply an ID belonging to another project to overwrite data records. From an integrity perspective, client-side generation can trigger high collision rates in distributed systems when multiple users simultaneously attempt to reserve sequential index numbers. Isolating ID generation to the server side via cryptographically secure tools like random UUIDs ensures strict uniqueness, preserves backend data models, and stops data corruption or tampering.
+**Answer:** Allowing the client to supply a unique identifier introduces significant security and data integrity risks. From a security perspective, it may enable resource overwriting or unauthorised access, where a malicious user could intentionally guess or reuse an existing ID to modify or replace another model’s data. From a data integrity perspective, client-side ID generation can lead to collisions or inconsistent identifiers, particularly in distributed or concurrent environments where multiple requests are processed simultaneously.
 
-Furthermore, leveraging declarative Jakarta Bean Validation constraints (such as `@NotNull` or `@Size`) provides a superior framework-level security guarantee compared to manual if-else validation code blocks. Manual if-else checks scatter defensive logic across resource classes, making the application error-prone and hard to maintain. Jakarta Bean Validation cleanly decouples validation constraints from business logic, ensuring automated, uniform interceptor enforcement at the framework boundary before runtime data persistence operations run.
+By delegating ID generation to the server using mechanisms such as UUID.randomUUID(), the system ensures that identifiers are globally unique, unpredictable, and not controllable by the client. This helps maintain data integrity and prevents tampering with existing resources.
+
+In addition, Jakarta Bean Validation provides a declarative approach to input validation using annotations such as @NotNull, @Size, and @Pattern. This is preferable to manual if-else validation because it centralises validation rules, reduces boilerplate code, and ensures consistent enforcement by the framework before business logic is executed. In contrast, manual validation can become scattered across resource classes, increasing the risk of inconsistency and human error.
 
 ### 3.2 Filtered Retrieval & Search Question
 If a user attempts to search for a framework containing spaces or special characters (e.g., ?framework=Scikit Learn & Tools), how must the client modify the URL, and why is this encoding necessary?
 
-**Answer:** The client must apply percent-encoding (URL encoding) to the query values, transforming the argument string into ?framework=Scikit%20Learn%20%26%20Tools. This parsing is necessary because native URLs only support safe ASCII strings. Characters like spaces and ampersands carry structural meanings inside the HTTP protocol specs. If left unencoded, an ampersand (&) would be misinterpreted by the server's HTTP engine as a parameter key delimiter rather than literal text data. This breaks the query parsing logic and causes execution errors.
+**Answer:** The client must apply percent-encoding (URL encoding) to the query parameter values, converting the string into a safe URL format such as ?framework=Scikit%20Learn%20%26%20Tools. This is necessary because URLs are only designed to reliably support a limited set of ASCII characters.
+
+Certain characters, such as spaces and ampersands, have special meanings within the HTTP query string structure. For example, the ampersand (&) is used to separate multiple query parameters. If these characters are not encoded, the server may incorrectly interpret them as part of the URL syntax rather than literal data, resulting in incorrect parsing of parameters or request handling errors.
 
 ---
 
@@ -118,37 +136,48 @@ If a user attempts to search for a framework containing spaces or special charac
 ### 4.1 Sub-Resource Locator Pattern Question
 You can place annotations like @Produces(MediaType.APPLICATION_JSON) at either the class level or the individual method level. What is the benefit of class-level placement, and how does method-level overriding work?
 
-**Answer:** Declaring @Produces(MediaType.APPLICATION_JSON) at the class level establishes a clean, shared fallback rule for the entire resource controller, reducing boilerplate code across all inner methods. Method-level overriding allows developers to break away from this global rule for specific endpoints that need to output alternate media variants, like a data download endpoint marked with @Produces(MediaType.TEXT_PLAIN). The JAX-RS runtime evaluates these targets by prioritizing the narrowest, most specific path declaration, allowing the method annotation to override the broader class fallback smoothly. This pattern is necessary for managing sub-resource locators that resolve nested components dynamically.
+**Answer:** Placing @Produces(MediaType.APPLICATION_JSON) at class level defines a default response media type for all methods within the resource class. This reduces duplication and improves maintainability by avoiding repeated annotations on each endpoint method.
+
+Method-level @Produces annotations allow this default behaviour to be overridden for specific endpoints when a different response format is required, such as text/plain or another media type.
+
+The JAX-RS runtime resolves the most specific annotation available, meaning method-level annotations take precedence over class-level annotations. This allows fine-grained control over individual endpoints while maintaining a consistent default configuration at class level.
 
 ### 4.2 Historical Data Management Note
-**Implementation Logic:** To manage performance metrics and accuracy over time, historical data endpoints are exposed under deep nesting routes. Successful POST operations targeting performance tracking sub-resources dynamically fire automated callbacks to adjust and update the parent machine learning model record's data states seamlessly.
+**Implementation Logic:** Evaluation metrics are stored using a nested sub-resource under `/models/{modelId}/metrics`, implemented via a sub-resource locator in `ModelResource`. The `EvaluationMetricResource` exposes a `GET /` endpoint to retrieve the historical evaluation metrics for a specific model and a `POST /` endpoint to append new evaluation metrics to that model’s history.
 
+When a new metric is submitted via POST, it is persisted into the model’s evaluation history. As a required side effect of this operation, the parent `MachineLearningModel` entity is also updated by setting its `latestAccuracy` field to the newly submitted accuracy score. This ensures data consistency between historical metric records and the model’s current performance state across the API.
 ---
 
 ## PART 5: ADVANCED ERROR HANDLING
 
 ### 5.1 Resource Conflict (409) Note
-**Implementation Logic:** Deleting a Workspace containing active elements triggers a custom `WorkspaceNotEmptyException`. A dedicated JAX-RS ExceptionMapper catches this exception to cleanly pass back an HTTP 409 Conflict code bundled with a structured error explanation payload.
+** Attempting to delete a MLWorkspace that still contains associated models triggers a custom WorkspaceNotEmptyException. This exception is handled by a dedicated JAX-RS ExceptionMapper, which converts it into an HTTP 409 Conflict response. The response includes a structured JSON error message explaining that the workspace cannot be deleted due to existing model dependencies, ensuring clear feedback to the client while maintaining API integrity.
 
 ### 5.2 Dependency Validation (422/400) Question
 HTTP status codes are categorized into classes (e.g., 2xx, 4xx, 5xx). Explain fundamentally why a validation failure caused by the user providing a non-existent workspaceId must return a 4xx code rather than a 5xx code.
 
-**Answer:** The HTTP specification states that status code groupings reflect where the error originated. 4xx responses are reserved for Client Errors, meaning the backend server processed the inbound stream safely, but the client sent an unprocessable payload, invalid arguments, or a bad structural reference. Conversely, 5xx codes specify Server Errors, meaning the incoming request was completely valid, but the internal server code crashed or suffered an unhandled runtime exception.
+**Answer:** HTTP status codes are grouped into classes that indicate the origin of the response. 4xx status codes represent client errors, meaning the request was syntactically valid but contained incorrect or invalid data from the client’s perspective. In this case, the server has processed the request correctly but cannot complete it due to an invalid input, such as a non-existent workspaceId.
 
-Providing a missing or incorrect workspaceId is a user-driven input error. The API server is executing perfectly by catching this mistake, meaning a 4xx error (such as 400 Bad Request or 422 Unprocessable Entity via `LinkedWorkspaceNotFoundException`) must be passed back. Throwing a 5xx code here would be highly misleading, as it falsely indicates a server bug and breaks error-monitoring systems.
+In contrast, 5xx status codes represent server errors, which occur when the server fails to process a valid request due to internal faults, such as unhandled exceptions or system failures.
+
+Providing a non-existent workspaceId is therefore a client-side validation issue, as the client has referenced a resource that does not exist. The server is functioning correctly by detecting and rejecting this invalid reference, and as such, a 4xx response (such as 400 Bad Request or 422 Unprocessable Entity) is appropriate. Returning a 5xx error would incorrectly imply a server malfunction and could mislead monitoring systems and API consumers, potentially breaking error-monitoring systems and skewing operational alerts.
 
 ### 5.3 State Constraint (403) Note
-**Implementation Logic:** Modifying or posting tasks against deprecated workflows triggers a specialized `ModelDeprecatedException`. An architectural exception handler isolates this event and seamlessly returns an HTTP 403 Forbidden error response to block unlawful changes.
+**Implementation Logic:** When a MachineLearningModel is marked with the status DEPRECATED, it is no longer eligible to accept new evaluation metrics. Any attempt to submit a POST request to /models/{modelId}/metrics for such a model triggers a custom ModelDeprecatedException.
+
+This exception is handled by a dedicated JAX-RS ExceptionMapper, which returns an HTTP 403 Forbidden response. This indicates that the request is understood by the server, but the current state of the resource prevents the operation from being performed. The response ensures that deprecated models remain immutable while providing clear feedback to the client.
 
 ### 5.4 Global Safety Net (500) Question
 If an operation throws a specific custom exception (e.g., LinkedWorkspaceNotFoundException) and you also have a global ExceptionMapper<Throwable>, how does the JAX-RS runtime determine which mapper to execute?
 
-**Answer:** The JAX-RS architecture relies on a strict inheritance proximity algorithm (closest-match mapping) to determine exactly which exception interceptor to execute. When a handler is triggered, the runtime scans the thrown object's type tree against all registered ExceptionMapper parameters. It will always prioritize the mapper that sits closest to the exception class type.
+**Answer:** The JAX-RS runtime resolves exception handling using a most specific match strategy based on the exception class hierarchy. When an exception is thrown, the runtime searches for a registered ExceptionMapper that exactly matches the exception type or the closest parent type in its inheritance chain.
 
-Because a specialized exception has a direct, exact relationship with its concrete mapper, its structural proximity distance is zero. The root Throwable interface is the absolute top-level parent class, placing it at the furthest possible inheritance distance. Consequently, JAX-RS chooses the specific mapper first and drops back to the catch-all Throwable safety net (returning a generic HTTP 500 Internal Server Error) only if an unhandled unexpected runtime failure takes place.
+If a specific mapper exists for a custom exception such as LinkedWorkspaceNotFoundException, that mapper will be selected in preference to more generic handlers. This is because it provides a direct match to the thrown exception type.
+
+A global ExceptionMapper<Throwable> acts as a catch-all fallback handler and is only used when no more specific mapper is available. This ensures that unexpected runtime exceptions are still handled gracefully and converted into a standard HTTP 500 Internal Server Error, preventing raw stack traces from being exposed to the client.
 
 ### 5.5 API Logging Filters Question
 In your filter, you interact with ContainerRequestContext and ContainerResponseContext. List two pieces of crucial HTTP metadata (e.g., headers, URIs) you can extract from these contexts that are highly valuable for debugging server issues.
 
-**Answer:** * First item: The Request Inbound URI and HTTP Verb (ContainerRequestContext.getUriInfo().getRequestUri() / .getMethod()). Custom filters implementing ContainerRequestFilter extract these metadata elements to explicitly trace target entry routes and user actions executed against system resources.
-* Second item: The Response Status Code and Content Length (ContainerResponseContext.getStatus() / .getLength()). Interceptors implementing ContainerResponseFilter capture these states to monitor outbound data traffic. Logging these elements together within centralized console loops builds a flawless tracking log showing HTTP methods, request URIs, and status results for all incoming operations.
+**Answer:** * Request URI and HTTP method (from ContainerRequestContext), using methods such as getUriInfo().getRequestUri() and getMethod(). These are useful for identifying which endpoint is being accessed and what operation is being performed.
+* Response status code and response headers (from ContainerResponseContext), using methods such as getStatus() and getHeaders(). These help determine the outcome of the request and provide additional diagnostic information for debugging server behaviour.
