@@ -32,7 +32,7 @@ The base API entry point is accessible at: http://localhost:8080
 ```
 ---
 
-3. Sample cURL Commands
+### 3. Sample cURL Commands
 The following five cURL commands demonstrate successful HTTP interactions across different parts of the deployed API resources.
 
 1. Create a New Workspace (POST)
