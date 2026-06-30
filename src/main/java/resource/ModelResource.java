@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-@Path("/models")
+@Path("/api/v1/models")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ModelResource {
