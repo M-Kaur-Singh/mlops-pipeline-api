@@ -29,6 +29,7 @@ Bash
 mvn quarkus:dev
 The base API entry point is accessible at: http://localhost:8080
 
+```
 ---
 
 3. Sample cURL Commands
